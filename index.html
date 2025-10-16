@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FERJO Catálogo (Demo)</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>Catálogo FERJO (Demo)</h1>
+    <div class="controls">
+      <input id="search" placeholder="Buscar por nombre o código..." />
+      <select id="category">
+        <option value="">Todas las categorías</option>
+      </select>
+    </div>
+  </header>
+  <main id="grid"></main>
+  <template id="card-tpl">
+    <article class="card">
+      <div class="img"><img alt=""></div>
+      <div class="info">
+        <h2 class="name"></h2>
+        <p class="sku"></p>
+        <p class="price"></p>
+        <p class="stock"></p>
+        <button class="btn">Solicitar</button>
+      </div>
+    </article>
+  </template>
+  <script src="app.js"></script>
+</body>
+</html>
