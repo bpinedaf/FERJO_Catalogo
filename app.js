@@ -1,6 +1,11 @@
-const API_URL = localStorage.getItem('FERJO_API') || 'https://script.google.com/macros/s/AKfycbxUOVcn6K5anNZohvzxtRTPVSvZfyceH21AiBiMbLU4CrgfQ7c5CDp-SKNZK7UN1sHR/exec?path=products';
+const API_URL = (window.CONFIG && window.CONFIG.API) 
+  ? window.CONFIG.API 
+  : (localStorage.getItem('FERJO_API') || '');
 
 async function fetchProducts(){
+  if(!API_URL){
+    throw new Error('No hay API configurada. Define window.CONFIG.API en config.js o usa localStorage.setItem("FERJO_API", "...")');
+  }
   const res = await fetch(API_URL);
   if(!res.ok) throw new Error('No se pudo cargar el catálogo');
   const data = await res.json();
@@ -75,7 +80,7 @@ async function main(){
       render(list);
     });
   } catch (e){
-    document.getElementById('grid').innerHTML = '<p>Error cargando productos. Revisa la URL del API.</p>';
+    document.getElementById('grid').innerHTML = '<p>Error cargando productos. Revisa la URL del API en <code>config.js</code> o setea <code>FERJO_API</code> en localStorage.</p>';
     console.error(e);
   }
 }
