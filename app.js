@@ -6,7 +6,8 @@ async function fetchProducts(){
   if(!API_URL){
     throw new Error('No hay API configurada. Define window.CONFIG.API en config.js o usa localStorage.setItem("FERJO_API", "...")');
   }
-  const res = await fetch(API_URL);
+  const url = API_URL + (API_URL.includes('?') ? '&' : '?') + 't=' + Date.now();
+  const res = await fetch(url);
   if(!res.ok) throw new Error('No se pudo cargar el catálogo');
   const data = await res.json();
   return data.products || [];
@@ -18,6 +19,19 @@ function formatPrice(n, currency='GTQ'){
   } catch {
     return `Q ${Number(n||0).toFixed(2)}`;
   }
+}
+function normalizeImage(u){
+  if(!u) return '';
+  u = String(u).trim();
+
+  // Si viene como /file/d/<id>/view o open?id=<id>, conviértelo a uc?export=view&id=<id>
+  const m = u.match(/\/d\/([a-zA-Z0-9_-]+)/) || u.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (m) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
+
+  // Si es ya uc?export=download, cámbialo por view
+  if (/uc\?export=download/i.test(u)) return u.replace('export=download', 'export=view');
+
+  return u;
 }
 
 function render(products){
@@ -36,7 +50,15 @@ function render(products){
       alert('Demo: aquí podríamos abrir WhatsApp o un formulario de pedido.');
     });
     const img = node.querySelector('img');
-    img.src = p.image_url || p.image_url_2 || p.image_url_3 || 'https://via.placeholder.com/600x450?text=FERJO';
+    const rawSrc = p.image_url || p.image_url_2 || p.image_url_3 || '';
+    const imgSrc = normalizeImage(rawSrc);
+    img.src = imgSrc || 'https://via.placeholder.com/600x450?text=FERJO';
+    img.alt = p.nombre || 'Producto FERJO';
+    // Si falla, cae a placeholder y evita loop
+    img.onerror = function(){
+      this.onerror = null;
+      this.src = 'https://via.placeholder.com/600x450?text=FERJO';
+    };
     img.alt = p.nombre || 'Producto FERJO';
     grid.appendChild(node);
   });
