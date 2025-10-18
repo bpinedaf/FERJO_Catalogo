@@ -58,18 +58,18 @@ function extractDriveId(u){
 function driveVariantsFromUrl(u){
   const id = extractDriveId(u);
   if (!id) {
-    // Si ya viene un URL http(s) que no es drive, úsalo como única opción
     if (u && /^https?:\/\//i.test(String(u))) return [String(u)];
     return [];
   }
-  // Variantes comunes que suelen funcionar según el archivo/cuenta
+  // Prioriza la imagen original sin recortes
   return [
-    `https://lh3.googleusercontent.com/d/${id}=w1200`,                    // CDN de contenido
-    `https://drive.google.com/uc?export=view&id=${id}`,                  // vista "embebible"
-    `https://drive.google.com/uc?export=download&id=${id}`,              // descarga (a veces muestra imagen)
-    `https://drive.google.com/thumbnail?id=${id}&sz=w1200`               // miniatura
+    `https://drive.google.com/uc?export=view&id=${id}`,       // ORIGINAL (primero)
+    `https://drive.google.com/uc?export=download&id=${id}`,   // fallback
+    `https://lh3.googleusercontent.com/d/${id}=w1600`,        // CDN (tercero)
+    `https://drive.google.com/thumbnail?id=${id}&sz=w1600`    // último (puede recortar)
   ];
 }
+
 
 const PLACEHOLDER = 'https://via.placeholder.com/600x450?text=FERJO';
 
@@ -130,25 +130,41 @@ function render(products){
 
     function loadCurrentVariant(){
       if (!variants || variants.length === 0){
-        img.onerror = null;
+        img.onerror = img.onload = null;
         img.src = PLACEHOLDER;
+        node.querySelector('.img').classList.remove('portrait','landscape');
         return;
       }
       if (idxVariant >= variants.length){
-        img.onerror = null;
+        img.onerror = img.onload = null;
         img.src = PLACEHOLDER;
+        node.querySelector('.img').classList.remove('portrait','landscape');
         return;
       }
       const url = variants[idxVariant++];
+    
       img.alt = p.nombre || 'Producto FERJO';
       img.loading = 'lazy';
+    
       img.onerror = function(){
-        console.warn('Imagen falló:', { id: p.id_del_articulo, nombre: p.nombre, src: img.src });
-        loadCurrentVariant(); // intenta la siguiente variante
+        // intenta la siguiente variante
+        loadCurrentVariant();
       };
+    
+      img.onload = function(){
+        // Ajusta el aspect ratio según la foto real
+        const box = node.querySelector('.img');
+        box.classList.remove('portrait','landscape');
+        if (img.naturalHeight > img.naturalWidth) {
+          box.classList.add('portrait');   // 3:4
+        } else {
+          box.classList.add('landscape');  // 4:3
+        }
+      };
+    
       img.src = url;
     }
-
+    
     if (sourcesRaw.length > 1){
       btnPrev.style.display = btnNext.style.display = 'inline-flex';
       btnPrev.addEventListener('click', (ev)=>{
