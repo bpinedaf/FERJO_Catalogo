@@ -2,7 +2,7 @@ const API_URL = (window.CONFIG && window.CONFIG.API)
   ? window.CONFIG.API
   : (localStorage.getItem('FERJO_API') || '');
 
-// Asegura que el endpoint apunte a ?path=products si sólo te dieron /exec
+// Asegura endpoint de productos y evita caché CDN
 function buildProductsUrl() {
   if (!API_URL) return '';
   const hasQuery = API_URL.includes('?');
@@ -10,7 +10,6 @@ function buildProductsUrl() {
   const base = hasPathParam
     ? API_URL
     : API_URL + (hasQuery ? '&' : '?') + 'path=products';
-  // cache buster
   return base + (base.includes('?') ? '&' : '?') + 't=' + Date.now();
 }
 
@@ -33,20 +32,48 @@ function formatPrice(n, currency='GTQ'){
   }
 }
 
-// Normaliza URLs de Drive a un formato embebible en <img>
-function normalizeImage(u){
+/* =======================
+   IMÁGENES: DRIVE ROBUSTO
+   ======================= */
+
+// Extrae el ID de Drive de casi cualquier URL conocida
+function extractDriveId(u){
   if(!u) return '';
   u = String(u).trim();
-
-  // /file/d/<id>/view  o  ?id=<id>
-  const m = u.match(/\/d\/([a-zA-Z0-9_-]+)/) || u.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-  if (m) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
-
-  // export=download -> export=view
-  if (/uc\?export=download/i.test(u)) return u.replace('export=download', 'export=view');
-
-  return u;
+  // .../file/d/<ID>/view
+  let m = u.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (m) return m[1];
+  // ...?id=<ID>
+  m = u.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (m) return m[1];
+  // ...uc?export=view&id=<ID>
+  m = u.match(/uc\?[^#]*id=([a-zA-Z0-9_-]+)/);
+  if (m) return m[1];
+  return '';
 }
+
+// Devuelve variantes de URL para un mismo ID de Drive
+function driveVariantsFromUrl(u){
+  const id = extractDriveId(u);
+  if (!id) {
+    // Si ya viene un URL http(s) que no es drive, usa tal cual como primera opción
+    if (u && /^https?:\/\//i.test(String(u))) return [String(u)];
+    return [];
+  }
+  // Probamos distintos hosts/paths que suelen funcionar según cuenta/archivo
+  return [
+    // Content CDN (muy fiable para <img>)
+    `https://lh3.googleusercontent.com/d/${id}=w1200`,
+    // Vista directa
+    `https://drive.google.com/uc?export=view&id=${id}`,
+    // Forzamos descarga (algunos navegadores igual la muestran)
+    `https://drive.google.com/uc?export=download&id=${id}`,
+    // Thumbnail API (define ancho aprox)
+    `https://drive.google.com/thumbnail?id=${id}&sz=w1200`
+  ];
+}
+
+const PLACEHOLDER = 'https://via.placeholder.com/600x450?text=FERJO';
 
 function render(products){
   const grid = document.getElementById('grid');
@@ -56,31 +83,48 @@ function render(products){
   products.forEach(p=>{
     const node = tpl.content.cloneNode(true);
 
+    // Texto
     node.querySelector('.name').textContent = p.nombre || '(Sin nombre)';
     node.querySelector('.sku').textContent = `Código: ${p.id_del_articulo || p.upc_ean_isbn || '-'}`;
     node.querySelector('.price').textContent = `Precio: ${formatPrice(p.precio_de_venta, p.moneda)}`;
 
     const sinStock = (p.cantidad||0) <= 0 || String(p.status||'').toLowerCase() === 'sin_stock';
     node.querySelector('.stock').textContent = sinStock ? 'Sin stock' : `Stock: ${p.cantidad}`;
-    node.querySelector('.btn').disabled = sinStock;
-    node.querySelector('.btn').addEventListener('click',()=>{
+    const btn = node.querySelector('.btn');
+    btn.disabled = sinStock;
+    btn.addEventListener('click',()=>{
       alert('Demo: aquí podríamos abrir WhatsApp o un formulario de pedido.');
     });
 
-    // Imagen
+    // Imagen con Fallback progresivo
     const img = node.querySelector('img');
-    const rawSrc = p.image_url || p.image_url_2 || p.image_url_3 || '';
-    const imgSrc = normalizeImage(rawSrc);
-
-    // Fallback visible y registro de errores
     img.alt = p.nombre || 'Producto FERJO';
     img.loading = 'lazy';
-    img.onerror = function(){
-      console.warn('Imagen falló:', { id: p.id_del_articulo, nombre: p.nombre, src: imgSrc });
-      this.onerror = null;
-      this.src = 'https://via.placeholder.com/600x450?text=FERJO';
-    };
-    img.src = imgSrc || 'https://via.placeholder.com/600x450?text=FERJO';
+
+    const rawSrc = p.image_url || p.image_url_2 || p.image_url_3 || '';
+    const variants = driveVariantsFromUrl(rawSrc);
+    let idx = 0;
+
+    function tryNext(){
+      if (idx < variants.length) {
+        const url = variants[idx++];
+        img.onerror = onFail;
+        img.src = url;
+      } else {
+        img.onerror = null;
+        img.src = PLACEHOLDER;
+      }
+    }
+    function onFail(){
+      console.warn('Imagen falló:', { id: p.id_del_articulo, nombre: p.nombre, src: img.src });
+      tryNext();
+    }
+
+    if (variants.length === 0) {
+      img.src = PLACEHOLDER;
+    } else {
+      tryNext();
+    }
 
     grid.appendChild(node);
   });
