@@ -21,6 +21,10 @@ header{
   gap:16px; padding:16px;
 }
 
+/* Proporción por tipo de foto (se setea por JS al cargar) */
+.card .img { aspect-ratio: 4 / 3; }         /* por defecto horizontal */
+.card .img.portrait { aspect-ratio: 3 / 4; }/* vertical */
+
 /* Card */
 .card{
   background:#fff; border:1px solid #eee; border-radius:16px;
