@@ -153,7 +153,8 @@ function render(products){
     
       img.onload = function(){
         // Ajusta el aspect ratio según la foto real
-        const box = node.querySelector('.img');
+        const box = img.closest('.img');
+        if (!box) return;   // seguridad por si acaso
         box.classList.remove('portrait','landscape');
         if (img.naturalHeight > img.naturalWidth) {
           box.classList.add('portrait');   // 3:4
