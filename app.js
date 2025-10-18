@@ -2,6 +2,7 @@ const API_URL = (window.CONFIG && window.CONFIG.API)
   ? window.CONFIG.API
   : (localStorage.getItem('FERJO_API') || '');
 
+/* ============ FETCH DE PRODUCTOS ============ */
 // Asegura endpoint de productos y evita caché CDN
 function buildProductsUrl() {
   if (!API_URL) return '';
@@ -24,6 +25,7 @@ async function fetchProducts() {
   return data.products || [];
 }
 
+/* ============ UTILIDADES ============ */
 function formatPrice(n, currency='GTQ'){
   try {
     return new Intl.NumberFormat('es-GT',{style:'currency',currency}).format(n||0);
@@ -46,7 +48,7 @@ function extractDriveId(u){
   // ...?id=<ID>
   m = u.match(/[?&]id=([a-zA-Z0-9_-]+)/);
   if (m) return m[1];
-  // ...uc?export=view&id=<ID>
+  // ...uc?export=view&id=<ID> (o cualquier uc?...id=)
   m = u.match(/uc\?[^#]*id=([a-zA-Z0-9_-]+)/);
   if (m) return m[1];
   return '';
@@ -56,25 +58,22 @@ function extractDriveId(u){
 function driveVariantsFromUrl(u){
   const id = extractDriveId(u);
   if (!id) {
-    // Si ya viene un URL http(s) que no es drive, usa tal cual como primera opción
+    // Si ya viene un URL http(s) que no es drive, úsalo como única opción
     if (u && /^https?:\/\//i.test(String(u))) return [String(u)];
     return [];
   }
-  // Probamos distintos hosts/paths que suelen funcionar según cuenta/archivo
+  // Variantes comunes que suelen funcionar según el archivo/cuenta
   return [
-    // Content CDN (muy fiable para <img>)
-    `https://lh3.googleusercontent.com/d/${id}=w1200`,
-    // Vista directa
-    `https://drive.google.com/uc?export=view&id=${id}`,
-    // Forzamos descarga (algunos navegadores igual la muestran)
-    `https://drive.google.com/uc?export=download&id=${id}`,
-    // Thumbnail API (define ancho aprox)
-    `https://drive.google.com/thumbnail?id=${id}&sz=w1200`
+    `https://lh3.googleusercontent.com/d/${id}=w1200`,                    // CDN de contenido
+    `https://drive.google.com/uc?export=view&id=${id}`,                  // vista "embebible"
+    `https://drive.google.com/uc?export=download&id=${id}`,              // descarga (a veces muestra imagen)
+    `https://drive.google.com/thumbnail?id=${id}&sz=w1200`               // miniatura
   ];
 }
 
 const PLACEHOLDER = 'https://via.placeholder.com/600x450?text=FERJO';
 
+/* ============ RENDER ============ */
 function render(products){
   const grid = document.getElementById('grid');
   const tpl = document.getElementById('card-tpl');
@@ -96,40 +95,87 @@ function render(products){
       alert('Demo: aquí podríamos abrir WhatsApp o un formulario de pedido.');
     });
 
-    // Imagen con Fallback progresivo
+    // ----- Carrusel (usa image_url, image_url_2, image_url_3) -----
     const img = node.querySelector('img');
-    img.alt = p.nombre || 'Producto FERJO';
-    img.loading = 'lazy';
+    const btnPrev = node.querySelector('.nav.prev');
+    const btnNext = node.querySelector('.nav.next');
+    const dotsBox = node.querySelector('.dots');
 
-    const rawSrc = p.image_url || p.image_url_2 || p.image_url_3 || '';
-    const variants = driveVariantsFromUrl(rawSrc);
-    let idx = 0;
+    // Lista base de imágenes del producto (máx 3)
+    const sourcesRaw = [p.image_url, p.image_url_2, p.image_url_3].filter(Boolean);
+    // Estado
+    let idxImage = 0;         // índice de imagen dentro de sourcesRaw
+    let idxVariant = 0;       // variante a probar para la imagen actual
+    let variants = [];        // variantes para la imagen actual
 
-    function tryNext(){
-      if (idx < variants.length) {
-        const url = variants[idx++];
-        img.onerror = onFail;
-        img.src = url;
-      } else {
-        img.onerror = null;
-        img.src = PLACEHOLDER;
+    function buildDots(){
+      dotsBox.innerHTML = '';
+      if (sourcesRaw.length > 1){
+        sourcesRaw.forEach((_, i)=>{
+          const dot = document.createElement('i');
+          if (i === idxImage) dot.classList.add('active');
+          dot.addEventListener('click', (ev)=>{ ev.stopPropagation(); setImageIndex(i); });
+          dotsBox.appendChild(dot);
+        });
       }
     }
-    function onFail(){
-      console.warn('Imagen falló:', { id: p.id_del_articulo, nombre: p.nombre, src: img.src });
-      tryNext();
+
+    function setImageIndex(i){
+      idxImage = i;
+      idxVariant = 0;
+      variants = driveVariantsFromUrl(sourcesRaw[idxImage]);
+      loadCurrentVariant();
+      buildDots();
     }
 
-    if (variants.length === 0) {
+    function loadCurrentVariant(){
+      if (!variants || variants.length === 0){
+        img.onerror = null;
+        img.src = PLACEHOLDER;
+        return;
+      }
+      if (idxVariant >= variants.length){
+        img.onerror = null;
+        img.src = PLACEHOLDER;
+        return;
+      }
+      const url = variants[idxVariant++];
+      img.alt = p.nombre || 'Producto FERJO';
+      img.loading = 'lazy';
+      img.onerror = function(){
+        console.warn('Imagen falló:', { id: p.id_del_articulo, nombre: p.nombre, src: img.src });
+        loadCurrentVariant(); // intenta la siguiente variante
+      };
+      img.src = url;
+    }
+
+    if (sourcesRaw.length > 1){
+      btnPrev.style.display = btnNext.style.display = 'inline-flex';
+      btnPrev.addEventListener('click', (ev)=>{
+        ev.stopPropagation();
+        const n = sourcesRaw.length;
+        setImageIndex((idxImage - 1 + n) % n);
+      });
+      btnNext.addEventListener('click', (ev)=>{
+        ev.stopPropagation();
+        const n = sourcesRaw.length;
+        setImageIndex((idxImage + 1) % n);
+      });
+    } else {
+      btnPrev.style.display = btnNext.style.display = 'none';
+    }
+
+    if (sourcesRaw.length === 0){
       img.src = PLACEHOLDER;
     } else {
-      tryNext();
+      setImageIndex(0); // inicializa primera imagen + variantes
     }
 
     grid.appendChild(node);
   });
 }
 
+/* ============ FILTROS ============ */
 function hydrateFilters(products){
   const sel = document.getElementById('category');
   const cats = Array.from(new Set(products.map(p=> (p.categoria||'').trim()).filter(Boolean))).sort();
@@ -140,6 +186,7 @@ function hydrateFilters(products){
   });
 }
 
+/* ============ MAIN ============ */
 async function main(){
   try {
     const products = await fetchProducts();
