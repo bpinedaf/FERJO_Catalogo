@@ -250,9 +250,13 @@
           throw new Error('Configura FERJO_API_BASE en el Admin.');
         }
         const url = base + '/exec?path=requests';
+        //const res = await fetch(url, {
+        //  method:'POST',
+        //  headers:{ 'Content-Type':'application/json' },
+        //  body: JSON.stringify(payload)
+        //});
         const res = await fetch(url, {
-          method:'POST',
-          headers:{ 'Content-Type':'application/json' },
+          method: 'POST',
           body: JSON.stringify(payload)
         });
         const data = await res.json().catch(()=>({}));
