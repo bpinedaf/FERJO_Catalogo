@@ -91,9 +91,9 @@ function render(products){
     node.querySelector('.stock').textContent = sinStock ? 'Sin stock' : `Stock: ${p.cantidad}`;
     const btn = node.querySelector('.btn');
     btn.disabled = sinStock;
-    btn.addEventListener('click',()=>{
-      alert('Demo: aquí podríamos abrir WhatsApp o un formulario de pedido.');
-    });
+    //btn.addEventListener('click',()=>{
+    //  alert('Demo: aquí podríamos abrir WhatsApp o un formulario de pedido.');
+    //});
 
     // ----- Carrusel (usa image_url, image_url_2, image_url_3) -----
     const img = node.querySelector('img');
