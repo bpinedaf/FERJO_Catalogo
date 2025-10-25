@@ -5,6 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>FERJO Catálogo (Demo)</title>
   <link rel="stylesheet" href="styles.css">
+
+  <!-- Estilos mínimos del modal "Solicitar" -->
+  <style>
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:9999}
+    .modal.open{display:flex}
+    .modal-content{background:#111;color:#fff;border-radius:14px;padding:20px;max-width:560px;width:92%;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+    .modal h3{margin:0 0 10px 0}
+    .modal form label{display:block;margin:8px 0 4px}
+    .modal form input,.modal form textarea,.modal form select{
+      width:100%;padding:10px;border-radius:10px;border:1px solid #2a2a2a;background:#0c0c0c;color:#f2f2f2
+    }
+    .modal .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
+    .btn-primary{background:#2563eb;color:#fff;border:none;padding:10px 14px;border-radius:10px;cursor:pointer}
+    .btn-secondary{background:#222;color:#ddd;border:1px solid #333;padding:10px 14px;border-radius:10px;cursor:pointer}
+    .prod-preview{display:flex;gap:12px;align-items:center;margin:8px 0 12px}
+    .prod-preview img{max-height:120px;object-fit:contain;border-radius:8px;background:#00000020}
+    .prod-preview .name{font-weight:600}
+    .prod-preview .sku{font-size:.9em;opacity:.8}
+    .msg{margin-top:8px;font-size:.92em}
+  </style>
 </head>
 <body>
   <header>
@@ -38,7 +58,217 @@
     </article>
   </template>
 
+  <!-- Modal "Solicitar" -->
+  <div id="solicitarModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="solicitarTitle">
+    <div class="modal-content">
+      <h3 id="solicitarTitle">Solicitar producto</h3>
+      <form id="solicitarForm" novalidate>
+        <!-- Datos del producto (auto) -->
+        <input type="hidden" name="sku">
+        <input type="hidden" name="nombre_producto">
+        <div class="prod-preview">
+          <img id="solicitarImg" alt="">
+          <div>
+            <div id="solicitarProdName" class="name"></div>
+            <div id="solicitarSKU" class="sku"></div>
+          </div>
+        </div>
+
+        <!-- Campos del cliente -->
+        <label for="qty">Cantidad*</label>
+        <input id="qty" name="qty" type="number" min="1" required value="1">
+
+        <label for="nombre_cliente">Nombre completo*</label>
+        <input id="nombre_cliente" name="nombre_cliente" required>
+
+        <label for="telefono">Teléfono (GT)*</label>
+        <input id="telefono" name="telefono" required placeholder="502XXXXXXXX o 8 dígitos">
+
+        <label for="email">Email (opcional)</label>
+        <input id="email" name="email" type="email" placeholder="cliente@correo.com">
+
+        <label for="sucursal_envio">Entrega/Envío (Sucursal o dirección - opcional)</label>
+        <input id="sucursal_envio" name="sucursal_envio" placeholder="Sucursal central / Dirección para envío">
+
+        <label for="notas">Notas (opcional)</label>
+        <textarea id="notas" name="notas" rows="3" placeholder="Aclaraciones, horario preferido, etc."></textarea>
+
+        <!-- Honeypot anti-bots -->
+        <div style="position:absolute;left:-9999px;" aria-hidden="true">
+          <label>Tu mes favorito <input name="favorite_month" tabindex="-1"></label>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="btn-secondary" id="btnCancelarSolicitar">Cancelar</button>
+          <button type="submit" class="btn-primary">Enviar</button>
+        </div>
+
+        <div id="solicitarMsg" class="msg" role="status" aria-live="polite"></div>
+      </form>
+    </div>
+  </div>
+
   <script src="config.js"></script>
   <script src="app.js"></script>
+
+  <!-- JS mínimo para el flujo "Solicitar" (no interfiere con app.js) -->
+  <script>
+    // Lee la base de API desde localStorage (igual a admin)
+    function apiBase(){
+      const saved = localStorage.getItem('FERJO_API_BASE') || (window.CONFIG && window.CONFIG.API) || '';
+      return (saved || '').replace(/\/+$/,'');
+    }
+
+    function validPhoneGT(tel){
+      const digits = (tel || '').replace(/[^\d]/g,'');
+      return /^502?\d{8}$/.test(digits) || /^\d{8}$/.test(digits);
+    }
+
+    function openSolicitarModal(data){
+      const m = document.getElementById('solicitarModal');
+      const f = document.getElementById('solicitarForm');
+
+      // Set producto
+      f.sku.value = data.sku || '';
+      f.nombre_producto.value = data.nombre || '';
+      document.getElementById('solicitarProdName').textContent = data.nombre || '';
+      document.getElementById('solicitarSKU').textContent = data.sku ? ('SKU: ' + data.sku) : '';
+
+      const img = document.getElementById('solicitarImg');
+      if (data.image_url){
+        img.src = data.image_url;
+        img.style.display = 'block';
+      } else {
+        img.removeAttribute('src');
+        img.style.display = 'none';
+      }
+
+      document.getElementById('solicitarMsg').textContent = '';
+      m.classList.add('open');
+
+      // Foco inicial accesible
+      setTimeout(()=> document.getElementById('qty').focus(), 50);
+    }
+
+    function closeSolicitarModal(){
+      document.getElementById('solicitarModal').classList.remove('open');
+    }
+
+    // Delegación: click en botón "Solicitar" de cualquier tarjeta
+    document.addEventListener('click', (ev)=>{
+      const btn = ev.target.closest('.card .btn');
+      if (!btn) return;
+
+      const card = btn.closest('.card');
+      if (!card) return;
+
+      const nameEl = card.querySelector('.name');
+      const skuEl  = card.querySelector('.sku');
+      const imgEl  = card.querySelector('.img img');
+
+      const nombre = nameEl ? nameEl.textContent.trim() : '';
+      let skuText  = skuEl ? skuEl.textContent.trim() : '';
+      // Si viene "SKU: 123", extrae solo el código
+      const m = skuText.match(/sku\s*:\s*(.+)$/i);
+      const sku = m ? m[1].trim() : skuText;
+
+      const image_url = (imgEl && imgEl.getAttribute('src')) ? imgEl.getAttribute('src') : '';
+
+      openSolicitarModal({ sku, nombre, image_url });
+    });
+
+    // Cerrar modal
+    document.getElementById('btnCancelarSolicitar').addEventListener('click', closeSolicitarModal);
+    document.getElementById('solicitarModal').addEventListener('click', (e)=>{
+      if (e.target.id === 'solicitarModal') closeSolicitarModal();
+    });
+    document.addEventListener('keydown', (e)=>{
+      if (e.key === 'Escape') closeSolicitarModal();
+    });
+
+    // Submit del formulario
+    document.getElementById('solicitarForm').addEventListener('submit', async (ev)=>{
+      ev.preventDefault();
+      const f = ev.target;
+      const msg = document.getElementById('solicitarMsg');
+      msg.textContent = '';
+
+      // Honeypot
+      if (f.favorite_month && f.favorite_month.value){
+        msg.textContent = 'Error al validar el formulario.';
+        msg.style.color = '#f88';
+        return;
+      }
+
+      // Validaciones
+      if (!f.qty.value || Number(f.qty.value) <= 0){
+        msg.textContent = 'Cantidad inválida.';
+        msg.style.color = '#f88';
+        document.getElementById('qty').focus();
+        return;
+      }
+      if (!f.nombre_cliente.value.trim()){
+        msg.textContent = 'Ingresa tu nombre.';
+        msg.style.color = '#f88';
+        document.getElementById('nombre_cliente').focus();
+        return;
+      }
+      if (!validPhoneGT(f.telefono.value)){
+        msg.textContent = 'Teléfono de Guatemala inválido.';
+        msg.style.color = '#f88';
+        document.getElementById('telefono').focus();
+        return;
+      }
+      if (f.email.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.value)){
+        msg.textContent = 'Correo inválido.';
+        msg.style.color = '#f88';
+        document.getElementById('email').focus();
+        return;
+      }
+
+      const payload = {
+        sku: f.sku.value,
+        nombre_producto: f.nombre_producto.value,
+        qty: Number(f.qty.value || 0),
+        nombre_cliente: f.nombre_cliente.value.trim(),
+        telefono: f.telefono.value.trim(),
+        email: (f.email.value || '').trim(),
+        sucursal_envio: (f.sucursal_envio.value || '').trim(),
+        notas: (f.notas.value || '').trim(),
+        canal: 'web'
+      };
+
+      // Deshabilita mientras envía
+      const controls = [...f.elements];
+      controls.forEach(el=> el.disabled = true);
+      msg.textContent = 'Enviando...';
+      msg.style.color = '#bbb';
+
+      try{
+        const base = apiBase();
+        if (!base){
+          throw new Error('Configura FERJO_API_BASE en el Admin.');
+        }
+        const url = base + '/exec?path=requests';
+        const res = await fetch(url, {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(()=>({}));
+        if (!data.ok){
+          throw new Error(data.error || 'No se pudo enviar la solicitud');
+        }
+        msg.textContent = '¡Listo! Hemos recibido tu solicitud. Te contactaremos en breve.';
+        msg.style.color = '#8f8';
+        setTimeout(()=>{ closeSolicitarModal(); }, 900);
+      }catch(err){
+        msg.textContent = 'Error: ' + err.message;
+        msg.style.color = '#f88';
+      }finally{
+        controls.forEach(el=> el.disabled = false);
+      }
+    });
+  </script>
 </body>
 </html>
