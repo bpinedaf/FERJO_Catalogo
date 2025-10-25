@@ -167,10 +167,12 @@
       const imgEl  = card.querySelector('.img img');
 
       const nombre = nameEl ? nameEl.textContent.trim() : '';
-      let skuText  = skuEl ? skuEl.textContent.trim() : '';
-      // Si viene "SKU: 123", extrae solo el código
-      const m = skuText.match(/sku\s*:\s*(.+)$/i);
-      const sku = m ? m[1].trim() : skuText;
+      let skuText = skuEl ? skuEl.textContent.trim() : '';
+      // Acepta "SKU: 123" o "Código: 123" (con o sin acento)
+      let sku = '';
+      let m = skuText.match(/(?:sku|c[oó]digo)\s*:\s*(.+)$/i);
+      if (m) sku = m[1].trim();
+      else sku = skuText.trim();
 
       const image_url = (imgEl && imgEl.getAttribute('src')) ? imgEl.getAttribute('src') : '';
 
