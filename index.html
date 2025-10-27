@@ -8,6 +8,35 @@
 
   <!-- Estilos mínimos del modal "Solicitar" -->
   <style>
+    :root{
+      color-scheme: dark;
+    }
+    body{background:#0b0b0b;color:#eaeaea;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+    header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:16px 20px;background:#0f0f0f;border-bottom:1px solid #1c1c1c}
+    header h1{margin:0;font-size:20px}
+    .controls{display:flex;gap:10px}
+    .controls input,.controls select{
+      background:#101010;border:1px solid #222;color:#eee;border-radius:10px;padding:10px 12px;min-width:240px
+    }
+
+    main#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;padding:16px}
+
+    .card{background:#111;border:1px solid #1e1e1e;border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+    .card .img{position:relative;background:#090909}
+    .card .img img{display:block;width:100%;height:220px;object-fit:contain;background:#00000020}
+    .card .img .nav{position:absolute;top:50%;transform:translateY(-50%);border:none;background:#00000066;color:#fff;font-size:22px;width:32px;height:38px;border-radius:10px;cursor:pointer}
+    .card .img .prev{left:6px}
+    .card .img .next{right:6px}
+    .card .img .dots{position:absolute;bottom:6px;left:0;right:0;display:flex;justify-content:center;gap:6px}
+    .card .img .dots span{width:6px;height:6px;border-radius:999px;background:#ffffff45}
+    .card .img .dots span.active{background:#fff}
+    .card .info{padding:12px}
+    .card .name{font-size:16px;margin:0 0 6px}
+    .card .sku,.card .stock{opacity:.8;margin:4px 0}
+    .card .price{font-weight:600;margin:4px 0 10px}
+    .card .btn{width:100%;background:#2563eb;border:none;color:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
+
+    /* Modal */
     .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:9999}
     .modal.open{display:flex}
     .modal-content{background:#111;color:#fff;border-radius:14px;padding:20px;max-width:560px;width:92%;box-shadow:0 10px 30px rgba(0,0,0,.4)}
@@ -108,12 +137,14 @@
     </div>
   </div>
 
+  <!-- Tu config con la base de API -->
   <script src="config.js"></script>
+  <!-- Tu app que pinta el grid/carrusel -->
   <script src="app.js"></script>
 
-  <!-- JS mínimo para el flujo "Solicitar" (no interfiere con app.js) -->
+  <!-- JS mínimo para el flujo "Solicitar" -->
   <script>
-    // Lee la base de API desde localStorage (igual a admin)
+    // Base de API (permite override desde localStorage como en Admin)
     function apiBase(){
       const saved = localStorage.getItem('FERJO_API_BASE') || (window.CONFIG && window.CONFIG.API) || '';
       return (saved || '').replace(/\/+$/,'');
@@ -145,8 +176,6 @@
 
       document.getElementById('solicitarMsg').textContent = '';
       m.classList.add('open');
-
-      // Foco inicial accesible
       setTimeout(()=> document.getElementById('qty').focus(), 50);
     }
 
@@ -158,7 +187,6 @@
     document.addEventListener('click', (ev)=>{
       const btn = ev.target.closest('.card .btn');
       if (!btn) return;
-
       const card = btn.closest('.card');
       if (!card) return;
 
@@ -167,15 +195,14 @@
       const imgEl  = card.querySelector('.img img');
 
       const nombre = nameEl ? nameEl.textContent.trim() : '';
-      let skuText = skuEl ? skuEl.textContent.trim() : '';
+      let skuText  = skuEl ? skuEl.textContent.trim() : '';
+
       // Acepta "SKU: 123" o "Código: 123" (con o sin acento)
       let sku = '';
-      let m = skuText.match(/(?:sku|c[oó]digo)\s*:\s*(.+)$/i);
-      if (m) sku = m[1].trim();
-      else sku = skuText.trim();
+      const m = skuText.match(/(?:sku|c[oó]digo)\s*:\s*(.+)$/i);
+      sku = m ? m[1].trim() : skuText.trim();
 
       const image_url = (imgEl && imgEl.getAttribute('src')) ? imgEl.getAttribute('src') : '';
-
       openSolicitarModal({ sku, nombre, image_url });
     });
 
@@ -188,7 +215,7 @@
       if (e.key === 'Escape') closeSolicitarModal();
     });
 
-    // Submit del formulario
+    // Submit del formulario (POST text/plain + JSON → sin preflight; compatible con code.gs)
     document.getElementById('solicitarForm').addEventListener('submit', async (ev)=>{
       ev.preventDefault();
       const f = ev.target;
@@ -250,36 +277,22 @@
         const base = apiBase();
         if (!base) throw new Error('Configura FERJO_API_BASE en el Admin.');
         const url = base + (base.includes('?') ? '&' : '?') + 'path=requests';
-        
-        // Enviar como x-www-form-urlencoded para evitar preflight
-        const params = new URLSearchParams({
-          sku: f.sku.value,
-          nombre_producto: f.nombre_producto.value,
-          qty: String(Number(f.qty.value || 0)),
-          nombre_cliente: f.nombre_cliente.value.trim(),
-          telefono: f.telefono.value.trim(),
-          email: (f.email.value || '').trim(),
-          sucursal_envio: (f.sucursal_envio.value || '').trim(),
-          notas: (f.notas.value || '').trim(),
-          canal: 'web'
-        });
-        
+
         const res = await fetch(url, {
           method: 'POST',
-          body: params
+          headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+          body: JSON.stringify(payload)
         });
-        
-        const ct = res.headers.get('content-type') || '';
-        const data = ct.includes('application/json')
-          ? await res.json().catch(()=>({}))
-          : { ok:false, error: (await res.text().catch(()=>'')) || (res.ok ? '' : res.statusText) };
-        
-        if (!data.ok) throw new Error(data.error || 'No se pudo enviar la solicitud');
 
+        const data = await res.json().catch(()=>({ ok:false, error:'Respuesta no válida' }));
+        if (!res.ok || !data.ok){
+          throw new Error(data.error || ('HTTP ' + res.status));
         }
+
         msg.textContent = '¡Listo! Hemos recibido tu solicitud. Te contactaremos en breve.';
         msg.style.color = '#8f8';
-        setTimeout(()=>{ closeSolicitarModal(); }, 900);
+        setTimeout(()=>{ closeSolicitarModal(); }, 1000);
+
       }catch(err){
         msg.textContent = 'Error: ' + err.message;
         msg.style.color = '#f88';
