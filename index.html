@@ -251,7 +251,8 @@
         if (!base){
           throw new Error('Configura FERJO_API_BASE en el Admin.');
         }
-        const url = base + '/exec?path=requests';
+        // base ya es .../exec → agrega ?path=requests
+        const url = base + (base.includes('?') ? '&' : '?') + 'path=requests';
         const res = await fetch(url, {
           method: 'POST',
           mode: 'cors',
