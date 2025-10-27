@@ -252,16 +252,18 @@
           throw new Error('Configura FERJO_API_BASE en el Admin.');
         }
         const url = base + '/exec?path=requests';
-        //const res = await fetch(url, {
-        //  method:'POST',
-        //  headers:{ 'Content-Type':'application/json' },
-        //  body: JSON.stringify(payload)
-        //});
         const res = await fetch(url, {
           method: 'POST',
-          body: JSON.stringify(payload)
+          mode: 'cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          redirect: 'follow'
         });
-        const data = await res.json().catch(()=>({}));
+        const ct = res.headers.get('content-type') || '';
+        const data = ct.includes('application/json')
+          ? await res.json().catch(()=>({}))
+          : { ok:false, error: (await res.text().catch(()=>'')) || (res.ok ? '' : res.statusText) };
+
         if (!data.ok){
           throw new Error(data.error || 'No se pudo enviar la solicitud');
         }
