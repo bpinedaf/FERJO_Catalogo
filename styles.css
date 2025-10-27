@@ -198,3 +198,16 @@ header{
   .controls input, .controls select{ min-width: 0; width: 100%; }
   .controls{ flex-wrap: wrap; }
 }
+
+.brand-wrap{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.brand-logo{
+  height:32px;        /* ajusta 28–40px a gusto */
+  width:auto;
+  display:block;
+}
+header h1{ margin:0; } /* asegura buen alineado */
+
