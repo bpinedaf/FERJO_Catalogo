@@ -248,25 +248,34 @@
 
       try{
         const base = apiBase();
-        if (!base){
-          throw new Error('Configura FERJO_API_BASE en el Admin.');
-        }
-        // base ya es .../exec → agrega ?path=requests
+        if (!base) throw new Error('Configura FERJO_API_BASE en el Admin.');
         const url = base + (base.includes('?') ? '&' : '?') + 'path=requests';
+        
+        // Enviar como x-www-form-urlencoded para evitar preflight
+        const params = new URLSearchParams({
+          sku: f.sku.value,
+          nombre_producto: f.nombre_producto.value,
+          qty: String(Number(f.qty.value || 0)),
+          nombre_cliente: f.nombre_cliente.value.trim(),
+          telefono: f.telefono.value.trim(),
+          email: (f.email.value || '').trim(),
+          sucursal_envio: (f.sucursal_envio.value || '').trim(),
+          notas: (f.notas.value || '').trim(),
+          canal: 'web'
+        });
+        
         const res = await fetch(url, {
           method: 'POST',
-          mode: 'cors',
-          //headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          redirect: 'follow'
+          body: params
         });
+        
         const ct = res.headers.get('content-type') || '';
         const data = ct.includes('application/json')
           ? await res.json().catch(()=>({}))
           : { ok:false, error: (await res.text().catch(()=>'')) || (res.ok ? '' : res.statusText) };
+        
+        if (!data.ok) throw new Error(data.error || 'No se pudo enviar la solicitud');
 
-        if (!data.ok){
-          throw new Error(data.error || 'No se pudo enviar la solicitud');
         }
         msg.textContent = '¡Listo! Hemos recibido tu solicitud. Te contactaremos en breve.';
         msg.style.color = '#8f8';
