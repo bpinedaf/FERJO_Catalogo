@@ -1,46 +1,148 @@
-/* Reset & base */
-* { box-sizing: border-box; }
-body { margin: 0; font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif; color:#111; }
+/* ===========================
+   THEME TOKENS (CSS Variables)
+   =========================== */
 
-/* Header / controls */
+/* Light por defecto */
+:root {
+  --bg: #ffffff;
+  --fg: #111111;
+
+  --header-bg: #111111;
+  --header-fg: #ffffff;
+
+  --card-bg: #ffffff;
+  --card-fg: #111111;
+  --card-border: #eeeeee;
+  --card-shadow: 0 1px 8px rgba(0,0,0,.06);
+  --card-shadow-hover: 0 6px 20px rgba(0,0,0,.10);
+
+  --muted: #333333;
+  --input-bg: #ffffff;
+  --input-fg: #111111;
+  --input-border: #cccccc;
+
+  --btn-bg: #111111;
+  --btn-fg: #ffffff;
+
+  --dot: rgba(0,0,0,.25);
+  --dot-active: #111111;
+}
+
+/* Preferencia del sistema: dark */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b0b0b;
+    --fg: #f2f2f2;
+
+    --header-bg: #111111;
+    --header-fg: #ffffff;
+
+    --card-bg: #121212;
+    --card-fg: #f2f2f2;
+    --card-border: #1f1f1f;
+    --card-shadow: 0 1px 8px rgba(0,0,0,.30);
+    --card-shadow-hover: 0 6px 20px rgba(0,0,0,.45);
+
+    --muted: #b7b7b7;
+    --input-bg: #111111;
+    --input-fg: #f2f2f2;
+    --input-border: #2a2a2a;
+
+    --btn-bg: #2563eb;   /* un poco más vivo en dark */
+    --btn-fg: #ffffff;
+
+    --dot: rgba(255,255,255,.30);
+    --dot-active: #f2f2f2;
+  }
+}
+
+/* Overrides manuales (si pones data-theme="light" o "dark" en <html>) */
+:root[data-theme="light"] {
+  --bg:#ffffff; --fg:#111;
+  --header-bg:#111; --header-fg:#fff;
+  --card-bg:#fff; --card-fg:#111; --card-border:#eee;
+  --card-shadow:0 1px 8px rgba(0,0,0,.06);
+  --card-shadow-hover:0 6px 20px rgba(0,0,0,.10);
+  --muted:#333; --input-bg:#fff; --input-fg:#111; --input-border:#ccc;
+  --btn-bg:#111; --btn-fg:#fff;
+  --dot:rgba(0,0,0,.25); --dot-active:#111;
+}
+:root[data-theme="dark"] {
+  --bg:#0b0b0b; --fg:#f2f2f2;
+  --header-bg:#111; --header-fg:#fff;
+  --card-bg:#121212; --card-fg:#f2f2f2; --card-border:#1f1f1f;
+  --card-shadow:0 1px 8px rgba(0,0,0,.30);
+  --card-shadow-hover:0 6px 20px rgba(0,0,0,.45);
+  --muted:#b7b7b7; --input-bg:#111; --input-fg:#f2f2f2; --input-border:#2a2a2a;
+  --btn-bg:#2563eb; --btn-fg:#fff;
+  --dot:rgba(255,255,255,.30); --dot-active:#f2f2f2;
+}
+
+/* ===========
+   Reset & base
+   =========== */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+/* ==================
+   Header / controls
+   ================== */
 header{
   position: sticky; top: 0; z-index: 20;
-  background: #111; color: #fff;
+  background: var(--header-bg); color: var(--header-fg);
   padding: 16px 24px; display: flex; gap: 16px;
   align-items: center; justify-content: space-between;
 }
 .controls{ display:flex; gap:12px; }
 .controls input, .controls select{
-  padding:10px; border-radius:8px; border:1px solid #ccc; min-width:240px;
+  padding:10px; border-radius:8px;
+  border:1px solid var(--input-border);
+  min-width:240px;
+  background: var(--input-bg);
+  color: var(--input-fg);
 }
 
-/* Grid */
+/* =====
+   Grid
+   ===== */
 #grid{
   display:grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap:16px; padding:16px;
 }
 
-/* Proporción por tipo de foto (se setea por JS al cargar) */
+/* ============================
+   Proporción por tipo de foto
+   ============================ */
 .card .img { aspect-ratio: 4 / 3; }         /* por defecto horizontal */
 .card .img.portrait { aspect-ratio: 3 / 4; }/* vertical */
+.card .img.landscape { aspect-ratio: 4 / 3; }/* explícito */
 
-/* Card */
+/* ====
+   Card
+   ==== */
 .card{
-  background:#fff; border:1px solid #eee; border-radius:16px;
+  background: var(--card-bg);
+  color: var(--card-fg);
+  border:1px solid var(--card-border);
+  border-radius:16px;
   overflow:hidden; display:flex; flex-direction:column;
-  box-shadow:0 1px 8px rgba(0,0,0,.06);
+  box-shadow: var(--card-shadow);
   transition: box-shadow .2s ease, transform .2s ease;
 }
-.card:hover{ box-shadow:0 6px 20px rgba(0,0,0,.10); transform: translateY(-1px); }
+.card:hover{ box-shadow: var(--card-shadow-hover); transform: translateY(-1px); }
 
-/* Contenedor de imagen: fondo blanco y un poquito de aire */
-/* Contenedor de imagen */
 /* Contenedor de imagen */
 .card .img{
   position: relative;
   aspect-ratio: 4 / 3;
-  background:#fff;
+  background: var(--card-bg);
   display:grid; place-items:center;
   overflow:hidden;
   padding: 8px;
@@ -50,17 +152,10 @@ header{
 .card .img img{
   width:100% !important;
   height:100% !important;
-  object-fit: contain !important;     /* ← fuerza contain */
+  object-fit: contain !important;
   object-position: center center !important;
   display:block;
 }
-
-/* Proporción por tipo de foto (el JS agrega estas clases al cargar) */
-.card .img.portrait { aspect-ratio: 3 / 4; }
-.card .img.landscape { aspect-ratio: 4 / 3; }
-
-
-
 
 /* Flechas (ocultas si solo hay 1 imagen; JS las muestra) */
 .card .img .nav{
@@ -82,19 +177,19 @@ header{
 }
 .card .img .dots i{
   width:6px; height:6px; border-radius:999px;
-  background:rgba(0,0,0,.25); display:block;
+  background: var(--dot); display:block;
 }
-.card .img .dots i.active{ background:#111; }
+.card .img .dots i.active{ background: var(--dot-active); }
 
 /* Info */
 .card .info{ padding:12px 14px; }
 .card h2{ font-size:1rem; margin:0 0 6px; }
-.card p{ margin:.25rem 0; color:#333; }
+.card p{ margin:.25rem 0; color: var(--muted); }
 
 /* Button */
 .btn{
   padding:10px 12px; border:none; border-radius:10px;
-  background:#111; color:#fff; cursor:pointer;
+  background: var(--btn-bg); color: var(--btn-fg); cursor:pointer;
 }
 .btn:disabled{ opacity:.5; cursor:not-allowed; }
 
