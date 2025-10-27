@@ -1,27 +1,34 @@
-const API_URL = (window.CONFIG && window.CONFIG.API)
-  ? window.CONFIG.API
-  : (localStorage.getItem('FERJO_API') || '');
+/* ============ API BASE ============ */
+// Usa la misma clave que el Admin (FERJO_API_BASE).
+// También acepta window.CONFIG.API como fallback.
+// Siempre sin slash final.
+function apiBase(){
+  const saved = localStorage.getItem('FERJO_API_BASE') || (window.CONFIG && window.CONFIG.API) || '';
+  return (saved || '').replace(/\/+$/,'');
+}
 
 /* ============ FETCH DE PRODUCTOS ============ */
 // Asegura endpoint de productos y evita caché CDN
 function buildProductsUrl() {
-  if (!API_URL) return '';
-  const hasQuery = API_URL.includes('?');
-  const hasPathParam = /[?&]path=/.test(API_URL);
-  const base = hasPathParam
-    ? API_URL
-    : API_URL + (hasQuery ? '&' : '?') + 'path=products';
-  return base + (base.includes('?') ? '&' : '?') + 't=' + Date.now();
+  const BASE = apiBase();
+  if (!BASE) return '';
+  return `${BASE}/exec?path=products&t=${Date.now()}`;
 }
 
 async function fetchProducts() {
   const url = buildProductsUrl();
   if (!url) {
-    throw new Error('No hay API configurada. Define window.CONFIG.API en config.js o usa localStorage.setItem("FERJO_API", "...")');
+    throw new Error('No hay API configurada. Define window.CONFIG.API en config.js o guarda FERJO_API_BASE en localStorage.');
   }
-  const res = await fetch(url);
+  const res = await fetch(url, { mode: 'cors' });
   if (!res.ok) throw new Error('No se pudo cargar el catálogo');
-  const data = await res.json();
+
+  // Intenta leer JSON de forma segura
+  const ct = res.headers.get('content-type') || '';
+  const data = ct.includes('application/json')
+    ? await res.json()
+    : JSON.parse(await res.text());
+
   return data.products || [];
 }
 
@@ -70,7 +77,6 @@ function driveVariantsFromUrl(u){
   ];
 }
 
-
 const PLACEHOLDER = 'https://via.placeholder.com/600x450?text=FERJO';
 
 /* ============ RENDER ============ */
@@ -91,9 +97,6 @@ function render(products){
     node.querySelector('.stock').textContent = sinStock ? 'Sin stock' : `Stock: ${p.cantidad}`;
     const btn = node.querySelector('.btn');
     btn.disabled = sinStock;
-    //btn.addEventListener('click',()=>{
-    //  alert('Demo: aquí podríamos abrir WhatsApp o un formulario de pedido.');
-    //});
 
     // ----- Carrusel (usa image_url, image_url_2, image_url_3) -----
     const img = node.querySelector('img');
@@ -238,7 +241,7 @@ async function main(){
       render(list);
     });
   } catch (e){
-    document.getElementById('grid').innerHTML = '<p>Error cargando productos. Revisa la URL del API en <code>config.js</code> o setea <code>FERJO_API</code> en localStorage.</p>';
+    document.getElementById('grid').innerHTML = '<p>Error cargando productos. Revisa la URL del API en <code>config.js</code> o guarda <code>FERJO_API_BASE</code> en localStorage.</p>';
     console.error(e);
   }
 }
