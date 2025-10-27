@@ -59,6 +59,7 @@
   <header>
     <h1>Catálogo FERJO</h1>
     <div class="controls">
+      <button id="themeToggle" class="btn" style="margin-left:auto">Tema</button>
       <input id="search" placeholder="Buscar por nombre o código..." />
       <select id="category">
         <option value="">Todas las categorías</option>
@@ -301,5 +302,23 @@
       }
     });
   </script>
+  <script>
+  // Aplica preferencia guardada (si existe)
+  (function(){
+    const saved = localStorage.getItem('FERJO_THEME'); // 'light' | 'dark' | null
+    if (saved === 'light' || saved === 'dark') {
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+  })();
+
+  // Alternar y persistir
+  document.getElementById('themeToggle')?.addEventListener('click', ()=>{
+    const cur = document.documentElement.getAttribute('data-theme');
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('FERJO_THEME', next);
+  });
+</script>
+
 </body>
 </html>
