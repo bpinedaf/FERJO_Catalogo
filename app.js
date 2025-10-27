@@ -1,18 +1,21 @@
 /* ============ API BASE ============ */
 // Usa la misma clave que el Admin (FERJO_API_BASE).
 // También acepta window.CONFIG.API como fallback.
-// Siempre sin slash final.
+// Siempre sin slash final redundante; puede terminar en .../exec (está bien).
 function apiBase(){
   const saved = localStorage.getItem('FERJO_API_BASE') || (window.CONFIG && window.CONFIG.API) || '';
   return (saved || '').replace(/\/+$/,'');
 }
 
 /* ============ FETCH DE PRODUCTOS ============ */
-// Asegura endpoint de productos y evita caché CDN
+// Construye .../exec?path=products&t=... sin duplicar /exec
 function buildProductsUrl() {
   const BASE = apiBase();
   if (!BASE) return '';
-  return `${BASE}/exec?path=products&t=${Date.now()}`;
+  // Si BASE ya es .../exec → agrega ?path=...
+  // Si BASE NO trae query, ponemos ?; si ya trae, usamos &
+  const join = BASE.includes('?') ? '&' : '?';
+  return `${BASE}${join}path=products&t=${Date.now()}`;
 }
 
 async function fetchProducts() {
