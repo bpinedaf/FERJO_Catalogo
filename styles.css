@@ -211,3 +211,24 @@ header{
 }
 header h1{ margin:0; } /* asegura buen alineado */
 
+    .cart-items table{
+      width:100%;
+      border-collapse:collapse;
+      margin-bottom:12px;
+      font-size:.93em;
+    }
+    .cart-items th,
+    .cart-items td{
+      border-bottom:1px solid #292929;
+      padding:6px 4px;
+      text-align:left;
+    }
+    .cart-items td.qty-cell input{
+      width:60px;
+      text-align:right;
+    }
+    .cart-empty{
+      opacity:.8;
+      font-size:.95em;
+      margin-bottom:10px;
+    }
