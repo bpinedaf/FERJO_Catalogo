@@ -69,6 +69,7 @@
     </div>
     <div class="controls">
       <button id="themeToggle" class="btn" style="margin-left:auto">Tema</button>
+      <button id="cartBtn" class="btn" type="button">Carrito (0)</button>
       <input id="search" placeholder="Buscar por nombre o código..." />
       <select id="category">
         <option value="">Todas las categorías</option>
@@ -92,31 +93,21 @@
         <p class="sku"></p>
         <p class="price"></p>
         <p class="stock"></p>
-        <button class="btn">Solicitar</button>
+        <button class="btn btn-add-cart" type="button">Agregar al carrito</button>
       </div>
     </article>
   </template>
 
-  <!-- Modal "Solicitar" -->
+    <!-- Modal "Carrito / Solicitar" -->
   <div id="solicitarModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="solicitarTitle">
     <div class="modal-content">
-      <h3 id="solicitarTitle">Solicitar producto</h3>
+      <h3 id="solicitarTitle">Tu pedido</h3>
+
+      <!-- Aquí se pinta el contenido del carrito -->
+      <div id="cartItems" class="cart-items"></div>
+
       <form id="solicitarForm" novalidate>
-        <!-- Datos del producto (auto) -->
-        <input type="hidden" name="sku">
-        <input type="hidden" name="nombre_producto">
-        <div class="prod-preview">
-          <img id="solicitarImg" alt="">
-          <div>
-            <div id="solicitarProdName" class="name"></div>
-            <div id="solicitarSKU" class="sku"></div>
-          </div>
-        </div>
-
         <!-- Campos del cliente -->
-        <label for="qty">Cantidad*</label>
-        <input id="qty" name="qty" type="number" min="1" required value="1">
-
         <label for="nombre_cliente">Nombre completo*</label>
         <input id="nombre_cliente" name="nombre_cliente" required>
 
@@ -139,7 +130,7 @@
 
         <div class="actions">
           <button type="button" class="btn-secondary" id="btnCancelarSolicitar">Cancelar</button>
-          <button type="submit" class="btn-primary">Enviar</button>
+          <button type="submit" class="btn-primary">Enviar pedido</button>
         </div>
 
         <div id="solicitarMsg" class="msg" role="status" aria-live="polite"></div>
@@ -153,8 +144,12 @@
   <script src="app.js"></script>
 
   <!-- JS mínimo para el flujo "Solicitar" -->
+    <!-- JS para carrito y envío de pedido -->
   <script>
-    // Base de API (permite override desde localStorage como en Admin)
+    // --- Estado global del carrito ---
+    let CART = [];
+
+    // Base de API (igual que en app.js)
     function apiBase(){
       const saved = localStorage.getItem('FERJO_API_BASE') || (window.CONFIG && window.CONFIG.API) || '';
       return (saved || '').replace(/\/+$/,'');
@@ -165,55 +160,175 @@
       return /^502?\d{8}$/.test(digits) || /^\d{8}$/.test(digits);
     }
 
-    function openSolicitarModal(data){
-      const m = document.getElementById('solicitarModal');
-      const f = document.getElementById('solicitarForm');
+    // Actualiza texto y estado del botón Carrito
+    function updateCartBadge(){
+      const btn = document.getElementById('cartBtn');
+      if (!btn) return;
+      const totalItems = CART.reduce((sum, it)=> sum + (it.qty || 0), 0);
+      btn.textContent = `Carrito (${totalItems})`;
+      btn.disabled = totalItems === 0;
+    }
 
-      // Set producto
-      f.sku.value = data.sku || '';
-      f.nombre_producto.value = data.nombre || '';
-      document.getElementById('solicitarProdName').textContent = data.nombre || '';
-      document.getElementById('solicitarSKU').textContent = data.sku ? ('SKU: ' + data.sku) : '';
+    // Mensaje cortito debajo del formulario / modal
+    function showCartHint(text){
+      const msg = document.getElementById('solicitarMsg');
+      if (!msg) return;
+      msg.textContent = text;
+      msg.style.color = '#bbb';
+      setTimeout(()=>{
+        if (msg.textContent === text) msg.textContent = '';
+      }, 2000);
+    }
 
-      const img = document.getElementById('solicitarImg');
-      if (data.image_url){
-        img.src = data.image_url;
-        img.style.display = 'block';
+    // Agregar un producto al carrito a partir de la tarjeta
+    function addToCartFromCard(card){
+      const nameEl  = card.querySelector('.name');
+      const skuEl   = card.querySelector('.sku');
+      const priceEl = card.querySelector('.price');
+      const imgEl   = card.querySelector('.img img');
+
+      const nombre = nameEl ? nameEl.textContent.trim() : '';
+      const skuText = skuEl ? skuEl.textContent.trim() : '';
+
+      // Acepta "SKU: 123" o "Código: 123"
+      let sku = '';
+      const m = skuText.match(/(?:sku|c[oó]digo)\s*:\s*(.+)$/i);
+      sku = m ? m[1].trim() : skuText.trim();
+
+      const priceText = priceEl ? priceEl.textContent : '';
+      const priceNum = Number(
+        (priceText.replace(/[^\d.,]/g,'').replace(',','.')) || 0
+      );
+
+      const image_url = (imgEl && imgEl.getAttribute('src')) ? imgEl.getAttribute('src') : '';
+
+      if (!sku) return;
+
+      const existing = CART.find(it => it.sku === sku);
+      if (existing){
+        existing.qty += 1;
       } else {
-        img.removeAttribute('src');
-        img.style.display = 'none';
+        CART.push({
+          sku,
+          nombre,
+          precio: priceNum,
+          qty: 1,
+          image_url
+        });
+      }
+      updateCartBadge();
+      showCartHint((nombre || 'Producto') + ' agregado al carrito.');
+    }
+
+    // Renderiza el carrito dentro del modal
+    function renderCartModal(){
+      const box = document.getElementById('cartItems');
+      if (!box) return;
+
+      if (!CART.length){
+        box.innerHTML = '<p class="cart-empty">Tu carrito está vacío.</p>';
+        return;
       }
 
-      document.getElementById('solicitarMsg').textContent = '';
+      let filas = '';
+      CART.forEach((it, idx)=>{
+        const subtotal = (it.precio || 0) * (it.qty || 0);
+        const img = it.image_url
+          ? `<img src="${it.image_url}" alt="" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:#00000020;margin-right:6px;">`
+          : '';
+        filas += `
+          <tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:6px;">
+                ${img}
+                <div>
+                  <div>${it.nombre || ''}</div>
+                  <div style="font-size:.8em;opacity:.8;">SKU: ${it.sku}</div>
+                </div>
+              </div>
+            </td>
+            <td class="qty-cell">
+              <input type="number" min="1" value="${it.qty}" onchange="updateCartQty(${idx}, this.value)">
+            </td>
+            <td style="text-align:right;">Q ${(it.precio || 0).toFixed(2)}</td>
+            <td style="text-align:right;">Q ${subtotal.toFixed(2)}</td>
+            <td style="text-align:center;">
+              <button type="button" class="btn-secondary" onclick="removeFromCart(${idx})">×</button>
+            </td>
+          </tr>
+        `;
+      });
+
+      const total = CART.reduce((s,it)=> s + (it.precio || 0) * (it.qty || 0), 0);
+
+      box.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Cant.</th>
+              <th>Precio</th>
+              <th>Subtotal</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>${filas}</tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3" style="text-align:right;"><b>Total estimado</b></td>
+              <td style="text-align:right;"><b>Q ${total.toFixed(2)}</b></td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      `;
+    }
+
+    // Actualizar cantidad desde el input del carrito
+    function updateCartQty(index, value){
+      let n = Number(value);
+      if (!isFinite(n) || n <= 0) n = 1;
+      if (!CART[index]) return;
+      CART[index].qty = n;
+      renderCartModal();
+      updateCartBadge();
+    }
+
+    // Quitar línea del carrito
+    function removeFromCart(index){
+      CART.splice(index, 1);
+      renderCartModal();
+      updateCartBadge();
+    }
+
+    // Abrir / cerrar modal
+    function openCartModal(){
+      const m = document.getElementById('solicitarModal');
+      const msg = document.getElementById('solicitarMsg');
+      if (msg){
+        msg.textContent = '';
+        msg.style.color = '#bbb';
+      }
+      renderCartModal();
       m.classList.add('open');
-      setTimeout(()=> document.getElementById('qty').focus(), 50);
     }
 
     function closeSolicitarModal(){
       document.getElementById('solicitarModal').classList.remove('open');
     }
 
-    // Delegación: click en botón "Solicitar" de cualquier tarjeta
+    // Delegación: click en "Agregar al carrito" en cualquier tarjeta
     document.addEventListener('click', (ev)=>{
-      const btn = ev.target.closest('.card .btn');
+      const btn = ev.target.closest('.btn-add-cart');
       if (!btn) return;
       const card = btn.closest('.card');
       if (!card) return;
+      addToCartFromCard(card);
+    });
 
-      const nameEl = card.querySelector('.name');
-      const skuEl  = card.querySelector('.sku');
-      const imgEl  = card.querySelector('.img img');
-
-      const nombre = nameEl ? nameEl.textContent.trim() : '';
-      let skuText  = skuEl ? skuEl.textContent.trim() : '';
-
-      // Acepta "SKU: 123" o "Código: 123" (con o sin acento)
-      let sku = '';
-      const m = skuText.match(/(?:sku|c[oó]digo)\s*:\s*(.+)$/i);
-      sku = m ? m[1].trim() : skuText.trim();
-
-      const image_url = (imgEl && imgEl.getAttribute('src')) ? imgEl.getAttribute('src') : '';
-      openSolicitarModal({ sku, nombre, image_url });
+    // Abrir carrito al pulsar el botón del header
+    document.getElementById('cartBtn')?.addEventListener('click', ()=>{
+      openCartModal();
     });
 
     // Cerrar modal
@@ -225,12 +340,13 @@
       if (e.key === 'Escape') closeSolicitarModal();
     });
 
-    // Submit del formulario (POST text/plain + JSON → sin preflight; compatible con code.gs)
+    // Submit del formulario → envía TODO el carrito
     document.getElementById('solicitarForm').addEventListener('submit', async (ev)=>{
       ev.preventDefault();
       const f = ev.target;
       const msg = document.getElementById('solicitarMsg');
       msg.textContent = '';
+      msg.style.color = '#bbb';
 
       // Honeypot
       if (f.favorite_month && f.favorite_month.value){
@@ -239,13 +355,12 @@
         return;
       }
 
-      // Validaciones
-      if (!f.qty.value || Number(f.qty.value) <= 0){
-        msg.textContent = 'Cantidad inválida.';
+      if (!CART.length){
+        msg.textContent = 'Tu carrito está vacío.';
         msg.style.color = '#f88';
-        document.getElementById('qty').focus();
         return;
       }
+
       if (!f.nombre_cliente.value.trim()){
         msg.textContent = 'Ingresa tu nombre.';
         msg.style.color = '#f88';
@@ -266,9 +381,12 @@
       }
 
       const payload = {
-        sku: f.sku.value,
-        nombre_producto: f.nombre_producto.value,
-        qty: Number(f.qty.value || 0),
+        items: CART.map(it => ({
+          sku: it.sku,
+          nombre_producto: it.nombre,
+          qty: it.qty,
+          precio: it.precio
+        })),
         nombre_cliente: f.nombre_cliente.value.trim(),
         telefono: f.telefono.value.trim(),
         email: (f.email.value || '').trim(),
@@ -277,16 +395,14 @@
         canal: 'web'
       };
 
-      // Deshabilita mientras envía
       const controls = [...f.elements];
       controls.forEach(el=> el.disabled = true);
       msg.textContent = 'Enviando...';
-      msg.style.color = '#bbb';
 
       try{
         const base = apiBase();
         if (!base) throw new Error('Configura FERJO_API_BASE en el Admin.');
-        const url = base + (base.includes('?') ? '&' : '?') + 'path=requests';
+        const url = base + (base.includes('?') ? '&' : '?') + 'path=catalog_cart';
 
         const res = await fetch(url, {
           method: 'POST',
@@ -299,9 +415,15 @@
           throw new Error(data.error || ('HTTP ' + res.status));
         }
 
-        msg.textContent = '¡Listo! Hemos recibido tu solicitud. Te contactaremos en breve.';
+        msg.textContent = '¡Listo! Hemos recibido tu pedido. Te contactaremos en breve.';
         msg.style.color = '#8f8';
-        setTimeout(()=>{ closeSolicitarModal(); }, 1000);
+
+        // Limpia carrito
+        CART = [];
+        updateCartBadge();
+        renderCartModal();
+
+        setTimeout(()=>{ closeSolicitarModal(); }, 1200);
 
       }catch(err){
         msg.textContent = 'Error: ' + err.message;
@@ -310,7 +432,11 @@
         controls.forEach(el=> el.disabled = false);
       }
     });
+
+    // Inicializa badge en 0
+    updateCartBadge();
   </script>
+
   <script>
   // Aplica preferencia guardada (si existe)
   (function(){
