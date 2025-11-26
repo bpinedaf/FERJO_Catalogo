@@ -232,3 +232,45 @@ header h1{ margin:0; } /* asegura buen alineado */
       font-size:.95em;
       margin-bottom:10px;
     }
+/* === Carrito dentro del modal === */
+
+.cart-items table{
+  width:100%;
+  border-collapse:collapse;
+  margin-bottom:10px;
+  font-size:0.9rem;
+}
+
+.cart-items th,
+.cart-items td{
+  padding:6px 8px;
+  border-bottom:1px solid #262626;
+}
+
+.cart-items thead th{
+  text-align:left;
+  font-weight:600;
+  background:#141414;
+}
+
+.cart-items tfoot td{
+  border-top:1px solid #333;
+  font-size:0.95rem;
+  padding-top:8px;
+}
+
+.cart-items .qty-cell input[type="number"]{
+  width:60px;
+  padding:4px;
+  border-radius:8px;
+  border:1px solid #333;
+  background:#0c0c0c;
+  color:#f2f2f2;
+  text-align:center;
+}
+
+.cart-empty{
+  padding:10px 0;
+  text-align:center;
+  opacity:.8;
+}
