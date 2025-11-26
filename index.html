@@ -14,52 +14,12 @@
 
   <!-- Estilos mínimos del modal "Solicitar" -->
   <style>
-    :root{
-      color-scheme: dark;
-    }
-    body{background:#0b0b0b;color:#eaeaea;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
-    header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:16px 20px;background:#0f0f0f;border-bottom:1px solid #1c1c1c}
-    header h1{margin:0;font-size:20px}
-    .controls{display:flex;gap:10px}
-    .controls input,.controls select{
-      background:#101010;border:1px solid #222;color:#eee;border-radius:10px;padding:10px 12px;min-width:240px
-    }
+  /* Solo sugerimos dark a la UI del navegador (scrollbars, etc.) */
+  :root {
+    color-scheme: dark;
+  }
+</style>
 
-    main#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;padding:16px}
-
-    .card{background:#111;border:1px solid #1e1e1e;border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
-    .card .img{position:relative;background:#090909}
-    .card .img img{display:block;width:100%;height:220px;object-fit:contain;background:#00000020}
-    .card .img .nav{position:absolute;top:50%;transform:translateY(-50%);border:none;background:#00000066;color:#fff;font-size:22px;width:32px;height:38px;border-radius:10px;cursor:pointer}
-    .card .img .prev{left:6px}
-    .card .img .next{right:6px}
-    .card .img .dots{position:absolute;bottom:6px;left:0;right:0;display:flex;justify-content:center;gap:6px}
-    .card .img .dots span{width:6px;height:6px;border-radius:999px;background:#ffffff45}
-    .card .img .dots span.active{background:#fff}
-    .card .info{padding:12px}
-    .card .name{font-size:16px;margin:0 0 6px}
-    .card .sku,.card .stock{opacity:.8;margin:4px 0}
-    .card .price{font-weight:600;margin:4px 0 10px}
-    .card .btn{width:100%;background:#2563eb;border:none;color:#fff;padding:10px 12px;border-radius:10px;cursor:pointer}
-
-    /* Modal */
-    .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:9999}
-    .modal.open{display:flex}
-    .modal-content{background:#111;color:#fff;border-radius:14px;padding:20px;max-width:560px;width:92%;box-shadow:0 10px 30px rgba(0,0,0,.4)}
-    .modal h3{margin:0 0 10px 0}
-    .modal form label{display:block;margin:8px 0 4px}
-    .modal form input,.modal form textarea,.modal form select{
-      width:100%;padding:10px;border-radius:10px;border:1px solid #2a2a2a;background:#0c0c0c;color:#f2f2f2
-    }
-    .modal .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
-    .btn-primary{background:#2563eb;color:#fff;border:none;padding:10px 14px;border-radius:10px;cursor:pointer}
-    .btn-secondary{background:#222;color:#ddd;border:1px solid #333;padding:10px 14px;border-radius:10px;cursor:pointer}
-    .prod-preview{display:flex;gap:12px;align-items:center;margin:8px 0 12px}
-    .prod-preview img{max-height:120px;object-fit:contain;border-radius:8px;background:#00000020}
-    .prod-preview .name{font-weight:600}
-    .prod-preview .sku{font-size:.9em;opacity:.8}
-    .msg{margin-top:8px;font-size:.92em}
-  </style>
 </head>
 <body>
   <header>
