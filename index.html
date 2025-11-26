@@ -4,22 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>FERJO Catálogo</title>
+
+  <!-- CSS principal -->
   <link rel="stylesheet" href="styles.css">
+
   <!-- Favicon / App Icons -->
   <link rel="icon" href="Logotipo_0.ico">
   <link rel="icon" type="image/png" sizes="192x192" href="Logotipo_0.png">
   <link rel="apple-touch-icon" href="Logotipo_0.png">
   <meta name="theme-color" content="#111111">
-
-
-  <!-- Estilos mínimos del modal "Solicitar" -->
-  <style>
-  /* Solo sugerimos dark a la UI del navegador (scrollbars, etc.) */
-  :root {
-    color-scheme: dark;
-  }
-</style>
-
 </head>
 <body>
   <header>
@@ -58,7 +51,7 @@
     </article>
   </template>
 
-    <!-- Modal "Carrito / Solicitar" -->
+  <!-- Modal "Carrito / Solicitar" -->
   <div id="solicitarModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="solicitarTitle">
     <div class="modal-content">
       <h3 id="solicitarTitle">Tu pedido</h3>
@@ -98,18 +91,17 @@
     </div>
   </div>
 
-  <!-- Tu config con la base de API -->
+  <!-- Config con la base de API -->
   <script src="config.js"></script>
-  <!-- Tu app que pinta el grid/carrusel -->
+  <!-- App que pinta el grid/carrusel -->
   <script src="app.js"></script>
 
-  <!-- JS mínimo para el flujo "Solicitar" -->
-    <!-- JS para carrito y envío de pedido -->
+  <!-- JS para carrito y envío de pedido -->
   <script>
     // --- Estado global del carrito ---
     let CART = [];
 
-    // Base de API (igual que en app.js)
+    // Usa la misma apiBase que app.js
     function apiBase(){
       const saved = localStorage.getItem('FERJO_API_BASE') || (window.CONFIG && window.CONFIG.API) || '';
       return (saved || '').replace(/\/+$/,'');
@@ -125,7 +117,7 @@
       const btn = document.getElementById('cartBtn');
       if (!btn) return;
       const totalItems = CART.reduce((sum, it)=> sum + (it.qty || 0), 0);
-      btn.textContent = `Carrito (${totalItems})`;
+      btn.textContent = \`Carrito (\${totalItems})\`;
       btn.disabled = totalItems === 0;
     }
 
@@ -194,34 +186,34 @@
       CART.forEach((it, idx)=>{
         const subtotal = (it.precio || 0) * (it.qty || 0);
         const img = it.image_url
-          ? `<img src="${it.image_url}" alt="" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:#00000020;margin-right:6px;">`
+          ? \`<img src="\${it.image_url}" alt="" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:#00000020;margin-right:6px;">\`
           : '';
-        filas += `
+        filas += \`
           <tr>
             <td>
               <div style="display:flex;align-items:center;gap:6px;">
-                ${img}
+                \${img}
                 <div>
-                  <div>${it.nombre || ''}</div>
-                  <div style="font-size:.8em;opacity:.8;">SKU: ${it.sku}</div>
+                  <div>\${it.nombre || ''}</div>
+                  <div style="font-size:.8em;opacity:.8;">SKU: \${it.sku}</div>
                 </div>
               </div>
             </td>
             <td class="qty-cell">
-              <input type="number" min="1" value="${it.qty}" onchange="updateCartQty(${idx}, this.value)">
+              <input type="number" min="1" value="\${it.qty}" onchange="updateCartQty(\${idx}, this.value)">
             </td>
-            <td style="text-align:right;">Q ${(it.precio || 0).toFixed(2)}</td>
-            <td style="text-align:right;">Q ${subtotal.toFixed(2)}</td>
+            <td style="text-align:right;">Q \${(it.precio || 0).toFixed(2)}</td>
+            <td style="text-align:right;">Q \${subtotal.toFixed(2)}</td>
             <td style="text-align:center;">
-              <button type="button" class="btn-secondary" onclick="removeFromCart(${idx})">×</button>
+              <button type="button" class="btn-secondary" onclick="removeFromCart(\${idx})">×</button>
             </td>
           </tr>
-        `;
+        \`;
       });
 
       const total = CART.reduce((s,it)=> s + (it.precio || 0) * (it.qty || 0), 0);
 
-      box.innerHTML = `
+      box.innerHTML = \`
         <table>
           <thead>
             <tr>
@@ -232,16 +224,16 @@
               <th></th>
             </tr>
           </thead>
-          <tbody>${filas}</tbody>
+          <tbody>\${filas}</tbody>
           <tfoot>
             <tr>
               <td colspan="3" style="text-align:right;"><b>Total estimado</b></td>
-              <td style="text-align:right;"><b>Q ${total.toFixed(2)}</b></td>
+              <td style="text-align:right;"><b>Q \${total.toFixed(2)}</b></td>
               <td></td>
             </tr>
           </tfoot>
         </table>
-      `;
+      \`;
     }
 
     // Actualizar cantidad desde el input del carrito
@@ -397,23 +389,24 @@
     updateCartBadge();
   </script>
 
+  <!-- Toggle de tema -->
   <script>
-  // Aplica preferencia guardada (si existe)
-  (function(){
-    const saved = localStorage.getItem('FERJO_THEME'); // 'light' | 'dark' | null
-    if (saved === 'light' || saved === 'dark') {
-      document.documentElement.setAttribute('data-theme', saved);
-    }
-  })();
+    // Aplica preferencia guardada (si existe)
+    (function(){
+      const saved = localStorage.getItem('FERJO_THEME'); // 'light' | 'dark' | null
+      if (saved === 'light' || saved === 'dark') {
+        document.documentElement.setAttribute('data-theme', saved);
+      }
+    })();
 
-  // Alternar y persistir
-  document.getElementById('themeToggle')?.addEventListener('click', ()=>{
-    const cur = document.documentElement.getAttribute('data-theme');
-    const next = cur === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('FERJO_THEME', next);
-  });
-</script>
+    // Alternar y persistir
+    document.getElementById('themeToggle')?.addEventListener('click', ()=>{
+      const cur = document.documentElement.getAttribute('data-theme');
+      const next = cur === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('FERJO_THEME', next);
+    });
+  </script>
 
 </body>
 </html>
