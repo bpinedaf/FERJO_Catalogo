@@ -100,7 +100,7 @@ function render(products){
 
     const sinStock = (p.cantidad||0) <= 0 || String(p.status||'').toLowerCase() === 'sin_stock';
     const stockEl  = node.querySelector('.stock');
-    stockEl.textContent = sinStock ? 'Sin stock' : `Stock: ${p.cantidad}`;
+    stockEl.textContent = sinStock ? 'Sin stock' : `Con Stock`;
 
     // Usamos el botón de agregar al carrito explícitamente
     const btnAdd = node.querySelector('.btn-add-cart');
