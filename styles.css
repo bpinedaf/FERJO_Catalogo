@@ -558,3 +558,8 @@ header h1{
   border-color:#2563eb;
   box-shadow:0 0 0 2px rgba(37,99,235,.25);
 }
+.results-info{
+  padding:10px 20px;
+  font-size:.9rem;
+  opacity:.75;
+}
