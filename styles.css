@@ -152,6 +152,7 @@ header h1{
   display:flex;
   gap:12px;
   align-items: center;
+  flex-wrap:wrap;
 }
 
 .controls input,
@@ -505,4 +506,16 @@ header h1{
     width:14px;
     height:14px;          /* checkbox más pequeño */
   }
+}
+@media (min-width: 900px){
+  .controls{
+    flex-wrap:nowrap;
+  }
+  .filters-extra{
+    margin-left:auto; /* empuja chips a la derecha */
+  }
+}
+.filter-chip:has(input:checked){
+  background: rgba(30,144,255,.16);
+  border-color: rgba(30,144,255,.35);
 }
