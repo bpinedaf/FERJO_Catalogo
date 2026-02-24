@@ -452,3 +452,36 @@ header h1{
   text-align:center;
   opacity:.8;
 }
+/* Contenedor adicional de filtros */
+.filters-extra{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+/* Estilo tipo "chip moderno" */
+.filter-chip{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 14px;
+  border-radius:20px;
+  background:#1f1f1f;
+  border:1px solid #2e2e2e;
+  cursor:pointer;
+  transition: all .2s ease;
+  font-size:.85rem;
+  white-space:nowrap;
+}
+
+/* Hover */
+.filter-chip:hover{
+  background:#2a2a2a;
+}
+
+/* Ocultamos checkbox real */
+.filter-chip input{
+  accent-color:#1e90ff;
+  width:16px;
+  height:16px;
+}
