@@ -134,6 +134,19 @@ header h1{
   width:auto;
   display:block;
 }
+.controls .chk{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:.95rem;
+  color: var(--header-fg);
+  user-select:none;
+}
+
+.controls .chk input{
+  width:16px;
+  height:16px;
+}
 
 .controls{
   display:flex;
