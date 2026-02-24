@@ -111,7 +111,7 @@ header{
   z-index: 20;
   background: var(--header-bg);
   color: var(--header-fg);
-  padding: 16px 24px;
+  padding: 12px 20px; /* antes 16px 24px */
   display: flex;
   gap: 16px;
   align-items: center;
@@ -462,34 +462,34 @@ header h1{
 }
 
 .filter-chip{
-  width: auto;         
-  flex: 0 0 auto;      
-}
-/* Estilo tipo "chip moderno" */
-.filter-chip{
   display:flex;
   align-items:center;
-  gap:8px;
-  padding:6px 14px;
+  gap:6px;
+  padding:5px 12px;
   border-radius:999px;
-  background:#1f1f1f;
-  border:1px solid #2e2e2e;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.12);
   cursor:pointer;
-  transition: all .2s ease;
-  font-size:.9rem;
+  transition: all .18s ease;
+  font-size:.85rem;
   white-space:nowrap;
 }
 
-/* Hover */
-.filter-chip:hover{
-  background:#2a2a2a;
+.filter-chip input{
+  width:14px;
+  height:14px;
+  accent-color:#2563eb;
 }
 
-/* Ocultamos checkbox real */
-.filter-chip input{
-  accent-color:#1e90ff;
-  width:16px;
-  height:16px;
+/* Hover elegante */
+.filter-chip:hover{
+  background:rgba(255,255,255,.10);
+}
+
+/* Activo */
+.filter-chip:has(input:checked){
+  background:rgba(37,99,235,.18);
+  border-color:rgba(37,99,235,.45);
 }
 
 /* Desktop: más “pro” y compacto */
@@ -518,4 +518,43 @@ header h1{
 .filter-chip:has(input:checked){
   background: rgba(30,144,255,.16);
   border-color: rgba(30,144,255,.35);
+}
+
+@media (min-width: 1000px){
+
+  .controls{
+    flex-wrap:nowrap;
+    gap:10px; /* menos espacio entre elementos */
+  }
+
+  /* Buscador y select más compactos */
+  .controls input,
+  .controls select{
+    padding:6px 10px;
+    height:34px;
+    min-width:200px; /* antes 240px */
+    font-size:.85rem;
+    border-radius:8px;
+  }
+
+  /* Botones header más finos */
+  .btn{
+    padding:6px 12px;
+    height:34px;
+    font-size:.85rem;
+    border-radius:8px;
+  }
+
+  /* Empujar filtros a la derecha */
+  .filters-extra{
+    margin-left:auto;
+    gap:8px;
+  }
+}
+
+.controls input:focus,
+.controls select:focus{
+  outline:none;
+  border-color:#2563eb;
+  box-shadow:0 0 0 2px rgba(37,99,235,.25);
 }
