@@ -282,7 +282,18 @@ async function main(){
         return hay && okCat && okStock && okPhoto;
       });
 
+      if (!list.length){
+        document.getElementById('grid').innerHTML =
+          '<p style="padding:40px;text-align:center;opacity:.7;">No se encontraron productos con los filtros actuales.</p>';
+        const info = document.getElementById('resultsInfo');
+        if (info) info.textContent = '0 productos';
+        return;
+      }
       render(list);
+      const info = document.getElementById('resultsInfo');
+      if (info){
+        info.textContent = `Mostrando ${list.length} producto${list.length !== 1 ? 's' : ''}`;
+      }
     }
 
     // 🔹 Render inicial (YA filtrado)
