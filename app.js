@@ -237,25 +237,44 @@ async function main(){
 
     const searchEl   = document.getElementById('search');
     const categoryEl = document.getElementById('category');
+    const onlyStockEl  = document.getElementById('onlyStock');
+    const onlyPhotosEl = document.getElementById('onlyPhotos');
 
     function applyFilters(){
       const q   = (searchEl.value || '').toLowerCase().trim();
       const cat = categoryEl.value;
-
+    
+      const onlyStock  = !!onlyStockEl?.checked;
+      const onlyPhotos = !!onlyPhotosEl?.checked;
+    
       const list = window.__PRODUCTS__.filter(p=> {
+        // Búsqueda (como ya lo tenías)
         const nombre  = (p.nombre||'').toLowerCase();
         const cod1    = (p.id_del_articulo||'').toLowerCase();
         const cod2    = (p.upc_ean_isbn||'').toLowerCase();
-        const hay     = nombre.includes(q) || cod1.includes(q) || cod2.includes(q);
+        const hay     = !q || nombre.includes(q) || cod1.includes(q) || cod2.includes(q);
+    
+        // Categoría (como ya lo tenías)
         const okCat   = !cat || (p.categoria||'') === cat;
-        return hay && okCat;
+    
+        // Stock (misma regla que usas para deshabilitar el botón)
+        const sinStock = (p.cantidad||0) <= 0 || String(p.status||'').toLowerCase() === 'sin_stock';
+        const okStock  = !onlyStock || !sinStock; // si activas "Solo con stock", deben NO ser sinStock
+    
+        // Foto (al menos una url válida con texto)
+        const hasPhoto = [p.image_url, p.image_url_2, p.image_url_3].some(u => String(u||'').trim().length > 0);
+        const okPhoto  = !onlyPhotos || hasPhoto;
+    
+        return hay && okCat && okStock && okPhoto;
       });
-
+    
       render(list);
     }
 
     searchEl.addEventListener('input', applyFilters);
     categoryEl.addEventListener('change', applyFilters);
+    onlyStockEl?.addEventListener('change', applyFilters);
+    onlyPhotosEl?.addEventListener('change', applyFilters);
 
   } catch (e){
     document.getElementById('grid').innerHTML =
