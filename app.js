@@ -231,7 +231,8 @@ function hydrateFilters(products){
 async function main(){
   try {
     const products = await fetchProducts();
-    window.__PRODUCTS__ = products;
+    applyFilters();
+    /*window.__PRODUCTS__ = products;*/
     hydrateFilters(products);
     render(products);
 
