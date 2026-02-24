@@ -240,6 +240,7 @@ async function main(){
     const categoryEl   = document.getElementById('category');
     const onlyStockEl  = document.getElementById('onlyStock');
     const onlyPhotosEl = document.getElementById('onlyPhotos');
+    const sortEl = document.getElementById('sortBy');
 
     // 🔹 Claves para persistencia
     const LS_KEY_STOCK = 'FERJO_onlyStock';
@@ -262,6 +263,18 @@ async function main(){
       const onlyStock  = !!onlyStockEl?.checked;
       const onlyPhotos = !!onlyPhotosEl?.checked;
 
+      const sortValue = sortEl.value;
+      
+      if (sortValue === 'nombre'){
+        list.sort((a,b)=> (a.nombre||'').localeCompare(b.nombre||''));
+      }
+      if (sortValue === 'precio_asc'){
+        list.sort((a,b)=> (a.precio_de_venta||0) - (b.precio_de_venta||0));
+      }
+      if (sortValue === 'precio_desc'){
+        list.sort((a,b)=> (b.precio_de_venta||0) - (a.precio_de_venta||0));
+      }
+
       const list = window.__PRODUCTS__.filter(p=> {
 
         const nombre  = (p.nombre||'').toLowerCase();
@@ -280,6 +293,13 @@ async function main(){
         const okPhoto  = !onlyPhotos || hasPhoto;
 
         return hay && okCat && okStock && okPhoto;
+
+        document.body.classList.toggle('filter-active',
+          onlyStockEl.checked ||
+          onlyPhotosEl.checked ||
+          searchEl.value.trim() ||
+          categoryEl.value
+        );
       });
 
       if (!list.length){
@@ -302,6 +322,7 @@ async function main(){
     // 🔹 Listeners
     searchEl.addEventListener('input', applyFilters);
     categoryEl.addEventListener('change', applyFilters);
+    sortEl.addEventListener('change', applyFilters);
 
     onlyStockEl?.addEventListener('change', ()=>{
       localStorage.setItem(LS_KEY_STOCK, onlyStockEl.checked);
