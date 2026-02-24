@@ -259,49 +259,54 @@ async function main(){
 
       const q   = (searchEl.value || '').toLowerCase().trim();
       const cat = categoryEl.value;
-
+    
       const onlyStock  = !!onlyStockEl?.checked;
       const onlyPhotos = !!onlyPhotosEl?.checked;
-
-      const sortValue = sortEl.value;
-      
-      if (sortValue === 'nombre'){
-        list.sort((a,b)=> (a.nombre||'').localeCompare(b.nombre||''));
-      }
-      if (sortValue === 'precio_asc'){
-        list.sort((a,b)=> (a.precio_de_venta||0) - (b.precio_de_venta||0));
-      }
-      if (sortValue === 'precio_desc'){
-        list.sort((a,b)=> (b.precio_de_venta||0) - (a.precio_de_venta||0));
-      }
-
-      const list = window.__PRODUCTS__.filter(p=> {
-
+    
+      // 🔹 Primero filtramos
+      let list = window.__PRODUCTS__.filter(p=> {
+    
         const nombre  = (p.nombre||'').toLowerCase();
         const cod1    = (p.id_del_articulo||'').toLowerCase();
         const cod2    = (p.upc_ean_isbn||'').toLowerCase();
         const hay     = !q || nombre.includes(q) || cod1.includes(q) || cod2.includes(q);
-
+    
         const okCat   = !cat || (p.categoria||'') === cat;
-
+    
         const sinStock = (p.cantidad||0) <= 0 ||
                          String(p.status||'').toLowerCase() === 'sin_stock';
         const okStock  = !onlyStock || !sinStock;
-
+    
         const hasPhoto = [p.image_url, p.image_url_2, p.image_url_3]
           .some(u => String(u||'').trim().length > 0);
         const okPhoto  = !onlyPhotos || hasPhoto;
-
+    
         return hay && okCat && okStock && okPhoto;
-
-        document.body.classList.toggle('filter-active',
-          onlyStockEl.checked ||
-          onlyPhotosEl.checked ||
-          searchEl.value.trim() ||
-          categoryEl.value
-        );
       });
-
+    
+      // 🔹 Luego ordenamos
+      const sortValue = sortEl.value;
+    
+      if (sortValue === 'nombre'){
+        list.sort((a,b)=> (a.nombre||'').localeCompare(b.nombre||''));
+      }
+    
+      if (sortValue === 'precio_asc'){
+        list.sort((a,b)=> (a.precio_de_venta||0) - (b.precio_de_venta||0));
+      }
+    
+      if (sortValue === 'precio_desc'){
+        list.sort((a,b)=> (b.precio_de_venta||0) - (a.precio_de_venta||0));
+      }
+    
+      // 🔹 Indicador visual (ahora sí fuera del filter)
+      document.body.classList.toggle('filter-active',
+        onlyStockEl.checked ||
+        onlyPhotosEl.checked ||
+        searchEl.value.trim() ||
+        categoryEl.value
+      );
+    
       if (!list.length){
         document.getElementById('grid').innerHTML =
           '<p style="padding:40px;text-align:center;opacity:.7;">No se encontraron productos con los filtros actuales.</p>';
@@ -309,7 +314,9 @@ async function main(){
         if (info) info.textContent = '0 productos';
         return;
       }
+    
       render(list);
+    
       const info = document.getElementById('resultsInfo');
       if (info){
         info.textContent = `Mostrando ${list.length} producto${list.length !== 1 ? 's' : ''}`;
