@@ -231,51 +231,76 @@ function hydrateFilters(products){
 async function main(){
   try {
     const products = await fetchProducts();
-    /*applyFilters();*/
-    window.__PRODUCTS__ = products;
-    hydrateFilters(products);
-    render(products);
 
-    const searchEl   = document.getElementById('search');
-    const categoryEl = document.getElementById('category');
+    window.__PRODUCTS__ = products;
+
+    hydrateFilters(products);
+
+    const searchEl     = document.getElementById('search');
+    const categoryEl   = document.getElementById('category');
     const onlyStockEl  = document.getElementById('onlyStock');
     const onlyPhotosEl = document.getElementById('onlyPhotos');
 
+    // 🔹 Claves para persistencia
+    const LS_KEY_STOCK = 'FERJO_onlyStock';
+    const LS_KEY_PHOTO = 'FERJO_onlyPhotos';
+
+    // 🔹 Restaurar preferencias guardadas
+    const savedStock = localStorage.getItem(LS_KEY_STOCK);
+    const savedPhoto = localStorage.getItem(LS_KEY_PHOTO);
+
+    // Default profesional:
+    // Si nunca ha guardado nada → Solo con stock activado
+    onlyStockEl.checked  = savedStock !== null ? savedStock === 'true' : true;
+    onlyPhotosEl.checked = savedPhoto !== null ? savedPhoto === 'true' : false;
+
     function applyFilters(){
+
       const q   = (searchEl.value || '').toLowerCase().trim();
       const cat = categoryEl.value;
-    
+
       const onlyStock  = !!onlyStockEl?.checked;
       const onlyPhotos = !!onlyPhotosEl?.checked;
-    
+
       const list = window.__PRODUCTS__.filter(p=> {
-        // Búsqueda (como ya lo tenías)
+
         const nombre  = (p.nombre||'').toLowerCase();
         const cod1    = (p.id_del_articulo||'').toLowerCase();
         const cod2    = (p.upc_ean_isbn||'').toLowerCase();
         const hay     = !q || nombre.includes(q) || cod1.includes(q) || cod2.includes(q);
-    
-        // Categoría (como ya lo tenías)
+
         const okCat   = !cat || (p.categoria||'') === cat;
-    
-        // Stock (misma regla que usas para deshabilitar el botón)
-        const sinStock = (p.cantidad||0) <= 0 || String(p.status||'').toLowerCase() === 'sin_stock';
-        const okStock  = !onlyStock || !sinStock; // si activas "Solo con stock", deben NO ser sinStock
-    
-        // Foto (al menos una url válida con texto)
-        const hasPhoto = [p.image_url, p.image_url_2, p.image_url_3].some(u => String(u||'').trim().length > 0);
+
+        const sinStock = (p.cantidad||0) <= 0 ||
+                         String(p.status||'').toLowerCase() === 'sin_stock';
+        const okStock  = !onlyStock || !sinStock;
+
+        const hasPhoto = [p.image_url, p.image_url_2, p.image_url_3]
+          .some(u => String(u||'').trim().length > 0);
         const okPhoto  = !onlyPhotos || hasPhoto;
-    
+
         return hay && okCat && okStock && okPhoto;
       });
-    
+
       render(list);
     }
 
+    // 🔹 Render inicial (YA filtrado)
+    applyFilters();
+
+    // 🔹 Listeners
     searchEl.addEventListener('input', applyFilters);
     categoryEl.addEventListener('change', applyFilters);
-    onlyStockEl?.addEventListener('change', applyFilters);
-    onlyPhotosEl?.addEventListener('change', applyFilters);
+
+    onlyStockEl?.addEventListener('change', ()=>{
+      localStorage.setItem(LS_KEY_STOCK, onlyStockEl.checked);
+      applyFilters();
+    });
+
+    onlyPhotosEl?.addEventListener('change', ()=>{
+      localStorage.setItem(LS_KEY_PHOTO, onlyPhotosEl.checked);
+      applyFilters();
+    });
 
   } catch (e){
     document.getElementById('grid').innerHTML =
