@@ -490,3 +490,19 @@ header h1{
   width:16px;
   height:16px;
 }
+
+/* Desktop: más “pro” y compacto */
+@media (min-width: 900px){
+  .filter-chip{
+    padding:4px 10px;     /* menos alto */
+    gap:6px;
+    font-size:.82rem;     /* texto más fino */
+    border-radius:14px;   /* menos “píldora gigante” */
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.10);
+  }
+  .filter-chip input{
+    width:14px;
+    height:14px;          /* checkbox más pequeño */
+  }
+}
